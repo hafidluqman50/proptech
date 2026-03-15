@@ -29,12 +29,12 @@ type HistoryItem = {
 
 function KpiCards({ data }: { data: { label: string; value: string; accent: string }[] }) {
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${data.length}, 1fr)` }}>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {data.map((card) => (
-        <div key={card.label} className="bg-white rounded-2xl border border-[#e8e4de] p-5 shadow-sm">
-          <div className="w-0.5 h-8 rounded-full mb-3 float-left mr-3" style={{ backgroundColor: card.accent }} />
+        <div key={card.label} className="bg-white rounded-2xl border border-[#e8e4de] p-4 shadow-sm">
+          <div className="w-0.5 h-6 rounded-full mb-2 float-left mr-2.5" style={{ backgroundColor: card.accent }} />
           <p className="text-[10px] tracking-wide uppercase text-[#bbb] mb-1">{card.label}</p>
-          <p className="text-xl font-semibold tracking-tight" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
+          <p className="text-lg font-semibold tracking-tight" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
             {card.value}
           </p>
         </div>
@@ -45,7 +45,7 @@ function KpiCards({ data }: { data: { label: string; value: string; accent: stri
 
 function SummaryCard({ text }: { text: string }) {
   return (
-    <div className="bg-[#fffbf0] border border-[#f0e8d0] rounded-2xl p-5">
+    <div className="bg-[#fffbf0] border border-[#f0e8d0] rounded-2xl p-4">
       <p className="text-[10px] tracking-[0.18em] uppercase text-[#c9a84c] font-semibold mb-2">
         Finance Agent · Ringkasan
       </p>
@@ -57,13 +57,13 @@ function SummaryCard({ text }: { text: string }) {
 function ChartCard({ config, explanation }: { config: any; explanation: string }) {
   return (
     <div className="bg-white rounded-2xl border border-[#e8e4de] shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#f5f3f0]">
+      <div className="px-4 py-3 border-b border-[#f5f3f0]">
         <p className="text-[10px] tracking-[0.18em] uppercase text-[#bbb] font-semibold mb-0.5">
           Engineer Agent · Visualisasi
         </p>
         <p className="text-sm text-[#777]">{explanation}</p>
       </div>
-      <div className="p-6 h-80">
+      <div className="p-4 h-64 md:h-80">
         <DynamicChart config={config} />
       </div>
     </div>
@@ -73,7 +73,7 @@ function ChartCard({ config, explanation }: { config: any; explanation: string }
 function DataTable({ headers, rows }: { headers: string[]; rows: (string | number)[][] }) {
   return (
     <div className="bg-white rounded-2xl border border-[#e8e4de] shadow-sm overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#f5f3f0]">
+      <div className="px-4 py-3 border-b border-[#f5f3f0]">
         <p className="text-[10px] tracking-[0.18em] uppercase text-[#bbb] font-semibold">Data Mentah</p>
       </div>
       <div className="overflow-x-auto">
@@ -81,7 +81,7 @@ function DataTable({ headers, rows }: { headers: string[]; rows: (string | numbe
           <thead>
             <tr className="border-b border-[#f5f3f0]">
               {headers.map((h) => (
-                <th key={h} className="text-left px-5 py-3 text-[#bbb] font-medium">{h}</th>
+                <th key={h} className="text-left px-4 py-3 text-[#bbb] font-medium whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
@@ -89,7 +89,7 @@ function DataTable({ headers, rows }: { headers: string[]; rows: (string | numbe
             {rows.map((row, i) => (
               <tr key={i} className="border-b border-[#faf9f7] hover:bg-[#faf9f7] transition-colors">
                 {row.map((cell, j) => (
-                  <td key={j} className={`px-5 py-3 ${j === 0 ? 'text-[#555] font-medium' : 'text-[#333]'}`}>
+                  <td key={j} className={`px-4 py-3 whitespace-nowrap ${j === 0 ? 'text-[#555] font-medium' : 'text-[#333]'}`}>
                     {cell}
                   </td>
                 ))}
@@ -117,6 +117,7 @@ export default function Dashboard() {
   const [activeItem, setActiveItem] = useState<HistoryItem | null>(null)
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({})
   const [history, setHistory] = useState<HistoryItem[]>([])
+  const [showHistory, setShowHistory] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const prevResultRef = useRef<any>(null)
   const filterTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -127,11 +128,11 @@ export default function Dashboard() {
     if (!prompt.trim() || isLoading) return
     reset()
     setActiveFilters({})
+    setShowHistory(false)
     prevResultRef.current = null
     await runAgent(prompt.trim())
   }
 
-  // When new result comes in, save to history
   if (result && result !== prevResultRef.current) {
     prevResultRef.current = result
     const item: HistoryItem = {
@@ -148,12 +149,12 @@ export default function Dashboard() {
   const handleSelectHistory = (item: HistoryItem) => {
     setActiveItem(item)
     setActiveFilters({})
+    setShowHistory(false)
   }
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...activeFilters, [key]: value }
     setActiveFilters(newFilters)
-
     if (filterTimeoutRef.current) clearTimeout(filterTimeoutRef.current)
     filterTimeoutRef.current = setTimeout(() => {
       const fd = activeItem?.financeData ?? financeData
@@ -167,8 +168,9 @@ export default function Dashboard() {
   return (
     <main className="min-h-screen bg-[#faf9f7] font-['DM_Sans',sans-serif] text-[#1a1a1a]">
 
-      <header className="bg-white border-b border-[#e8e4de] px-8 py-4 flex items-center justify-between sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-8">
+      {/* Header */}
+      <header className="bg-white border-b border-[#e8e4de] px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
+        <div className="flex items-center gap-4 md:gap-8">
           <div>
             <p className="text-[10px] tracking-[0.2em] uppercase text-[#bbb] font-medium">PropFinance</p>
             <h1 className="text-base font-semibold tracking-tight" style={{ fontFamily: "'Instrument Serif', Georgia, serif" }}>
@@ -183,13 +185,43 @@ export default function Dashboard() {
             <span className="w-2 h-2 rounded-full bg-blue-300" />Engineer
           </div>
         </div>
-        <span className="text-[11px] text-[#ccc]">{history.length} analisis</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-[#ccc]">{history.length} analisis</span>
+          {/* Mobile history toggle */}
+          {history.length > 0 && (
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="md:hidden text-xs px-3 py-1.5 rounded-lg bg-[#f5f3f0] text-[#666]"
+            >
+              {showHistory ? 'Tutup' : 'Riwayat'}
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 flex gap-6">
+      {/* Mobile history drawer */}
+      {showHistory && (
+        <div className="md:hidden bg-white border-b border-[#e8e4de] px-4 py-3 space-y-1.5 z-10">
+          {history.map(item => (
+            <button key={item.id} onClick={() => handleSelectHistory(item)}
+              className={`w-full text-left px-3 py-2.5 rounded-xl border text-xs transition-all ${
+                activeItem?.id === item.id
+                  ? 'bg-[#1a1a1a] text-white border-[#1a1a1a]'
+                  : 'bg-white text-[#666] border-[#eee]'
+              }`}>
+              <p className="font-medium line-clamp-1">{item.prompt}</p>
+              <p className={`text-[10px] mt-0.5 ${activeItem?.id === item.id ? 'text-[#888]' : 'text-[#ccc]'}`}>
+                {item.timestamp.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </button>
+          ))}
+        </div>
+      )}
 
-        {/* Sidebar */}
-        <aside className="w-60 shrink-0">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 flex gap-6">
+
+        {/* Desktop sidebar */}
+        <aside className="hidden md:block w-60 shrink-0">
           <p className="text-[10px] tracking-[0.18em] uppercase text-[#bbb] font-semibold px-1 mb-3">Riwayat</p>
           {history.length === 0 && <p className="text-xs text-[#ccc] px-1">Belum ada analisis</p>}
           <div className="space-y-1.5">
@@ -218,32 +250,32 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* Main */}
+        {/* Main content */}
         <div className="flex-1 min-w-0 space-y-4">
 
-          {/* Prompt */}
+          {/* Prompt box */}
           <div className="bg-white rounded-2xl border border-[#e8e4de] p-4 shadow-sm">
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <input ref={inputRef} type="text" value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-                placeholder="Contoh: 'chart doang', 'tabel transaksi', 'lengkap semua'..."
-                className="flex-1 bg-[#faf9f7] border border-[#e8e4de] rounded-xl px-4 py-2.5 text-sm text-[#333] placeholder-[#ccc] focus:outline-none focus:border-[#999] transition-colors"
+                placeholder="Contoh: chart doang, tabel transaksi..."
+                className="flex-1 bg-[#faf9f7] border border-[#e8e4de] rounded-xl px-3 py-2.5 text-sm text-[#333] placeholder-[#ccc] focus:outline-none focus:border-[#999] transition-colors min-w-0"
               />
               <button onClick={handleSubmit} disabled={isLoading || !prompt.trim()}
-                className="px-5 py-2.5 rounded-xl bg-[#1a1a1a] hover:bg-[#333] disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors shrink-0">
+                className="px-4 py-2.5 rounded-xl bg-[#1a1a1a] hover:bg-[#333] disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors shrink-0">
                 {isLoading ? (
-                  <span className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5">
                     <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Running
+                    <span className="hidden sm:inline">Running</span>
                   </span>
                 ) : 'Analisis'}
               </button>
             </div>
-            <div className="flex flex-wrap gap-2 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-3">
               {SUGGESTED_PROMPTS.map(s => (
                 <button key={s} onClick={() => { setPrompt(s); inputRef.current?.focus() }}
-                  className="text-[11px] px-3 py-1 rounded-lg bg-[#f5f3f0] hover:bg-[#ede9e3] text-[#999] hover:text-[#444] transition-colors">
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-[#f5f3f0] hover:bg-[#ede9e3] text-[#999] hover:text-[#444] transition-colors text-left">
                   {s}
                 </button>
               ))}
@@ -256,7 +288,7 @@ export default function Dashboard() {
               <p className="text-[10px] tracking-[0.18em] uppercase text-[#bbb] font-semibold mb-3">Agent Pipeline</p>
               <div className="space-y-2">
                 {statuses.map((s, i) => (
-                  <div key={i} className="flex items-start gap-3">
+                  <div key={i} className="flex items-start gap-2">
                     <span className={`text-[10px] font-semibold mt-0.5 w-20 shrink-0 ${STEP_LABELS[s.step]?.color}`}>
                       {STEP_LABELS[s.step]?.label}
                     </span>
@@ -264,7 +296,7 @@ export default function Dashboard() {
                   </div>
                 ))}
                 {isLoading && (
-                  <div className="flex gap-1 pt-1 pl-[92px]">
+                  <div className="flex gap-1 pt-1 pl-[88px]">
                     {[0,1,2].map(i => (
                       <span key={i} className="w-1.5 h-1.5 rounded-full bg-[#ddd] animate-bounce"
                         style={{ animationDelay: `${i*150}ms` }} />
@@ -284,20 +316,18 @@ export default function Dashboard() {
           {currentResult && (
             <div className="space-y-4">
 
-              {/* Dynamic filter bar */}
+              {/* Filter bar */}
               {currentResult.filters && currentResult.filters.length > 0 && (
-                <div className="bg-white rounded-2xl border border-[#e8e4de] px-5 py-3 shadow-sm flex items-center gap-4 flex-wrap">
-                  <span className="text-[10px] tracking-[0.18em] uppercase text-[#bbb] font-semibold shrink-0">
-                    Filter
-                  </span>
+                <div className="bg-white rounded-2xl border border-[#e8e4de] px-4 py-3 shadow-sm flex flex-wrap items-center gap-3">
+                  <span className="text-[10px] tracking-[0.18em] uppercase text-[#bbb] font-semibold shrink-0">Filter</span>
                   {currentResult.filters.map((filter: any) => (
                     <div key={filter.key} className="flex items-center gap-2">
-                      <label className="text-xs text-[#aaa]">{filter.label}</label>
+                      <label className="text-xs text-[#aaa] shrink-0">{filter.label}</label>
                       <select
                         value={activeFilters[filter.key] ?? 'Semua'}
                         onChange={e => handleFilterChange(filter.key, e.target.value)}
                         disabled={isLoading}
-                        className="text-xs bg-[#f5f3f0] border border-[#e8e4de] rounded-lg px-3 py-1.5 text-[#444] focus:outline-none focus:border-[#999] disabled:opacity-40 transition-colors cursor-pointer"
+                        className="text-xs bg-[#f5f3f0] border border-[#e8e4de] rounded-lg px-2.5 py-1.5 text-[#444] focus:outline-none focus:border-[#999] disabled:opacity-40 transition-colors cursor-pointer"
                       >
                         {filter.options.map((opt: string) => (
                           <option key={opt} value={opt}>{opt}</option>
@@ -314,20 +344,16 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Dumb renderer */}
+              {/* Components */}
               {currentResult.components?.map((component: any, i: number) => (
-                <ComponentRenderer
-                  key={i}
-                  component={component}
-                  explanation={currentResult.explanation}
-                />
+                <ComponentRenderer key={i} component={component} explanation={currentResult.explanation} />
               ))}
             </div>
           )}
 
           {/* Empty state */}
           {!isLoading && !currentResult && !error && (
-            <div className="bg-white rounded-2xl border border-[#e8e4de] p-20 text-center shadow-sm">
+            <div className="bg-white rounded-2xl border border-[#e8e4de] p-16 text-center shadow-sm">
               <p className="text-5xl mb-4">📊</p>
               <p className="text-sm text-[#ccc]">Masukkan prompt untuk memulai analisis</p>
             </div>
