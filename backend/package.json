@@ -1,0 +1,14 @@
+{
+  "name": "proptech-backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "db:seed": "bun run src/db/seed.ts"
+  },
+  "dependencies": {
+    "elysia": "latest",
+    "@elysiajs/cors": "latest",
+    "@anthropic-ai/sdk": "latest",
+    "postgres": "latest"
+  }
+}
