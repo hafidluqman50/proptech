@@ -6,7 +6,7 @@ import { financeAgent } from './agents/finance'
 import { orchestratorAgent } from './agents/orchestrator'
 
 const app = new Elysia()
-  .use(cors({ origin: 'http://localhost:3000' }))
+  .use(cors({ origin: process.env.APP_URL }))
 
   .get('/', () => ({ status: 'ok' }))
 
