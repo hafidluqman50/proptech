@@ -1,16 +1,14 @@
 import { cors } from '@elysiajs/cors'
 import { Elysia } from 'elysia'
+import { runAgent } from './agents/agent'
 import { engineerAgent } from './agents/engineer'
 import type { FinanceResult } from './agents/finance'
-import { financeAgent } from './agents/finance'
-import { orchestratorAgent } from './agents/orchestrator'
 
 const app = new Elysia()
   .use(cors({ origin: process.env.APP_URL }))
 
   .get('/', () => ({ status: 'ok' }))
 
-  // Full pipeline
   .post('/agent/analyze', async ({ body }) => {
     const { prompt } = body as { prompt: string }
     const encoder = new TextEncoder()
@@ -24,48 +22,17 @@ const app = new Elysia()
         }
 
         try {
-          send('status', { message: 'Orchestrator: analyzing prompt...', step: 1 })
-          const orchestratorResult = await orchestratorAgent(prompt)
-          send('status', { message: `Orchestrator: routing to ${orchestratorResult.route.join(' → ')}...`, step: 1 })
-
-          send('status', { message: 'Finance Agent: querying database...', step: 2 })
-          const financeResult = await financeAgent(
+          const result = await runAgent(
             prompt,
-            orchestratorResult,
-            (msg) => send('status', { message: msg, step: 2 })
+            (msg, step) => send('status', { message: msg, step }),
+            (financeResult) => send('finance', { result: financeResult })
           )
-          send('finance', { result: financeResult })
-          send('status', { message: 'Finance Agent: done.', step: 2 })
 
-          if (orchestratorResult.route.includes('engineer')) {
-            send('status', { message: 'Engineer Agent: generating visualization...', step: 3 })
-            const engineerResult = await engineerAgent(
-              prompt,
-              financeResult,
-              (msg) => send('status', { message: msg, step: 3 })
-            )
-            send('done', {
-              explanation: engineerResult.explanation,
-              filters: engineerResult.filters,
-              components: engineerResult.components,
-            })
-          } else {
-            send('done', {
-              explanation: financeResult.summary,
-              filters: [],
-              components: [
-                {
-                  type: 'kpi_cards',
-                  data: [
-                    { label: 'Total Transaksi', value: `Rp ${(financeResult.meta.totalTransaction / 1_000_000_000).toFixed(2)} M`, accent: '#7c3aed' },
-                    { label: 'Total Angsuran', value: `Rp ${(financeResult.meta.totalInstallment / 1_000_000).toFixed(0)} jt`, accent: '#059669' },
-                    { label: 'Periode', value: financeResult.meta.period, accent: '#d97706' },
-                  ]
-                },
-                { type: 'summary', text: financeResult.summary }
-              ],
-            })
-          }
+          send('done', {
+            explanation: result.explanation,
+            filters: result.filters,
+            components: result.components,
+          })
 
         } catch (err: any) {
           send('error', { message: err.message || 'Something went wrong' })
