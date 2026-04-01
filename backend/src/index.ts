@@ -26,7 +26,7 @@ const app = new Elysia()
         try {
           send('status', { message: 'Orchestrator: analyzing prompt...', step: 1 })
           const orchestratorResult = await orchestratorAgent(prompt)
-          send('status', { message: 'Orchestrator: routing to Finance Agent...', step: 1 })
+          send('status', { message: `Orchestrator: routing to ${orchestratorResult.route.join(' → ')}...`, step: 1 })
 
           send('status', { message: 'Finance Agent: querying database...', step: 2 })
           const financeResult = await financeAgent(
@@ -34,22 +34,38 @@ const app = new Elysia()
             orchestratorResult,
             (msg) => send('status', { message: msg, step: 2 })
           )
-          // Send finance data so frontend can cache it
           send('finance', { result: financeResult })
-          send('status', { message: 'Finance Agent: done. Passing to Engineer Agent...', step: 2 })
+          send('status', { message: 'Finance Agent: done.', step: 2 })
 
-          send('status', { message: 'Engineer Agent: generating visualization...', step: 3 })
-          const engineerResult = await engineerAgent(
-            prompt,
-            financeResult,
-            (msg) => send('status', { message: msg, step: 3 })
-          )
-
-          send('done', {
-            explanation: engineerResult.explanation,
-            filters: engineerResult.filters,
-            components: engineerResult.components,
-          })
+          if (orchestratorResult.route.includes('engineer')) {
+            send('status', { message: 'Engineer Agent: generating visualization...', step: 3 })
+            const engineerResult = await engineerAgent(
+              prompt,
+              financeResult,
+              (msg) => send('status', { message: msg, step: 3 })
+            )
+            send('done', {
+              explanation: engineerResult.explanation,
+              filters: engineerResult.filters,
+              components: engineerResult.components,
+            })
+          } else {
+            send('done', {
+              explanation: financeResult.summary,
+              filters: [],
+              components: [
+                {
+                  type: 'kpi_cards',
+                  data: [
+                    { label: 'Total Transaksi', value: `Rp ${(financeResult.meta.totalTransaction / 1_000_000_000).toFixed(2)} M`, accent: '#7c3aed' },
+                    { label: 'Total Angsuran', value: `Rp ${(financeResult.meta.totalInstallment / 1_000_000).toFixed(0)} jt`, accent: '#059669' },
+                    { label: 'Periode', value: financeResult.meta.period, accent: '#d97706' },
+                  ]
+                },
+                { type: 'summary', text: financeResult.summary }
+              ],
+            })
+          }
 
         } catch (err: any) {
           send('error', { message: err.message || 'Something went wrong' })

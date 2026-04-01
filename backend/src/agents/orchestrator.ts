@@ -4,7 +4,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export type OrchestratorResult = {
   intent: string
-  route: 'finance'
+  route: ('finance' | 'engineer')[]
   filters: {
     dateRange?: { from: string; to: string }
     unitType?: 'rumah' | 'makam' | 'all'
@@ -17,13 +17,17 @@ export async function orchestratorAgent(prompt: string): Promise<OrchestratorRes
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 300,
     system: `You are an orchestrator for a property company financial dashboard.
-Analyze the user prompt and extract intent + filters.
-Always route to "finance" first.
+Analyze the user prompt and decide which agents to call.
+
+ROUTING RULES:
+- Always include "finance" in route.
+- Include "engineer" if the user wants a chart, table, or visual dashboard.
+- Omit "engineer" if the user only wants a number, summary text, or simple answer.
 
 Respond ONLY with valid JSON, no markdown, no explanation:
 {
   "intent": "brief description of what user wants",
-  "route": "finance",
+  "route": ["finance"] or ["finance", "engineer"],
   "filters": {
     "dateRange": { "from": "YYYY-MM-DD", "to": "YYYY-MM-DD" } or null,
     "unitType": "rumah" | "makam" | "all",
